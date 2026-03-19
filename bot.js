@@ -21,7 +21,7 @@ const BAD_WORDS = ['fuck', 'shit', 'bitch', 'asshole', 'bastard', 'cunt', 'dick'
 const messageStore = [];
 function cacheMsg(msg) {
     messageStore.push(msg);
-    if (messageStore.length > 100) messageStore.shift();
+    if (messageStore.length > 200) messageStore.shift();
 }
 function getCachedMsg(jid, id) {
     return messageStore.find(m => m.key.remoteJid === jid && m.key.id === id);
@@ -57,7 +57,6 @@ async function startBot() {
         }
     });
 
-    // Store socket in shared state for API access
     appState.setSocket(sock);
 
     sock.ev.on('connection.update', async (update) => {
@@ -69,8 +68,6 @@ async function startBot() {
                 try {
                     const qrDataUrl = await QRCode.toDataURL(qr);
                     if (io) io.emit('qr', qrDataUrl);
-                    
-                    // Also log to console for GitHub Actions/headless environments
                     qrcodeTerminal.generate(qr, { small: true });
                     logger('[Main Bot] QR code generated. Scan with WhatsApp ^^^');
                 } catch (err) { logger(`QR Error: ${err.message}`); }
@@ -79,8 +76,7 @@ async function startBot() {
             if (connection === 'close') {
                 const statusCode = lastDisconnect?.error?.output?.statusCode;
                 const reason = lastDisconnect?.error?.message || 'Unknown';
-                
-                // Specific handling for common DisconnectReasons
+
                 if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
                     logger(`❌ [Main Bot] Logged Out (401). Please delete "${SESSION_DIR}" and re-scan.`);
                     appState.setStatus('Logged Out');
@@ -95,9 +91,9 @@ async function startBot() {
                 appState.setSocket(null);
                 appState.setNumber(null);
                 if (io) io.emit('update', { status: 'Reconnecting...' });
-                
+
                 const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-                if (shouldReconnect) setTimeout(() => startBot(), 5000);
+                if (shouldReconnect) setTimeout(() => startBot(), 1500);
             } else if (connection === 'open') {
                 logger('✅ [Main Bot] Connected!');
                 appState.setStatus('Connected');
@@ -111,12 +107,8 @@ async function startBot() {
         }
     });
 
-    // Handle unexpected socket errors to prevent crash
     sock.ev.on('error', (err) => {
         logger(`Socket Error: ${err.message}`);
-        if (err.message.includes('Connection Closed') || err.message.includes('Precondition Required')) {
-            // This is handled by connection.update 'close', but catching here prevents throw
-        }
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -131,22 +123,23 @@ async function startBot() {
 async function handleMessages(sock, m) {
     if (m.type !== 'notify') return;
 
-    // Check for admin restart request
     if (appState.isRestartRequested()) {
         appState.clearRestart();
         logger('Admin restart requested — reconnecting...');
         try { await sock.logout(); } catch {}
-        setTimeout(() => startBot(), 2000);
+        setTimeout(() => startBot(), 1500);
         return;
     }
 
-    for (const msg of m.messages) {
-        if (!msg.message) continue;
+    const bannedList = db.get('settings', 'banned') || {};
+
+    const tasks = m.messages.map(async (msg) => {
+        if (!msg.message) return;
         const from = msg.key.remoteJid;
 
         if (from === 'status@broadcast') {
-            if (AUTO_READ) await sock.readMessages([msg.key]).catch(() => {});
-            continue;
+            if (AUTO_READ) sock.readMessages([msg.key]).catch(() => {});
+            return;
         }
 
         const text = msg.message.conversation ||
@@ -154,16 +147,14 @@ async function handleMessages(sock, m) {
             msg.message.imageMessage?.caption ||
             msg.message.videoMessage?.caption || '';
 
-        if (msg.key.fromMe && !text.startsWith(PREFIX)) continue;
+        if (msg.key.fromMe && !text.startsWith(PREFIX)) return;
 
         const sender = msg.key.participant || msg.key.remoteJid;
 
-        const bannedList = db.get('settings', 'banned') || {};
-        if (bannedList[sender]) continue;
+        if (bannedList[sender]) return;
 
         cacheMsg(msg);
 
-        // Group moderation
         if (from.endsWith('@g.us') && text) {
             const groupSettings = db.get('groups', from);
 
@@ -173,8 +164,8 @@ async function handleMessages(sock, m) {
                     const isAdmin = meta.participants.find(p => p.id === sender)?.admin;
                     if (!isAdmin) {
                         await sock.sendMessage(from, { delete: msg.key });
-                        await sock.groupParticipantsUpdate(from, [sender], 'remove');
-                        continue;
+                        sock.groupParticipantsUpdate(from, [sender], 'remove').catch(() => {});
+                        return;
                     }
                 } catch {}
             }
@@ -185,18 +176,18 @@ async function handleMessages(sock, m) {
                     const isAdmin = meta.participants.find(p => p.id === sender)?.admin;
                     if (!isAdmin) {
                         await sock.sendMessage(from, { delete: msg.key });
-                        await sock.sendMessage(from, {
+                        sock.sendMessage(from, {
                             text: `⚠️ @${sender.split('@')[0]}, watch your language! This group does not allow bad words.`,
                             mentions: [sender]
-                        });
-                        continue;
+                        }).catch(() => {});
+                        return;
                     }
                 } catch {}
             }
         }
 
-        if (AUTO_READ && text.startsWith(PREFIX)) await sock.readMessages([msg.key]).catch(() => {});
-        if (AUTO_TYPING && text.startsWith(PREFIX)) await sock.sendPresenceUpdate('composing', from).catch(() => {});
+        if (AUTO_READ && text.startsWith(PREFIX)) sock.readMessages([msg.key]).catch(() => {});
+        if (AUTO_TYPING && text.startsWith(PREFIX)) sock.sendPresenceUpdate('composing', from).catch(() => {});
 
         let isCommand = await handleCommand(sock, msg, from, text);
         if (!isCommand) {
@@ -207,12 +198,14 @@ async function handleMessages(sock, m) {
         if (!isCommand && !msg.key.fromMe) {
             const lower = text.toLowerCase().trim();
             if (lower === 'hi' || lower === 'hello' || lower === 'hey') {
-                await sock.sendMessage(from, {
+                sock.sendMessage(from, {
                     text: `Hello! 👋 Welcome, Master!\n\nType *${PREFIX}menu* to see all my features or *${PREFIX}help* for a quick guide. 🚀`
-                });
+                }).catch(() => {});
             }
         }
-    }
+    });
+
+    await Promise.allSettled(tasks);
 }
 
 module.exports = { startBot, handleMessages };

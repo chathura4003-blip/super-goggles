@@ -307,10 +307,6 @@ async function downloadAndSend(sock, from, url, siteName, quality, isAudio, cach
             downloadProcess.on('error', reject);
         });
 
-        // ── Settlement delay for Windows File System ──
-        // Gives the OS/yt-dlp a moment to release file handles after renaming/merging.
-        await new Promise(r => setTimeout(r, 200));
-
         // Locate the output file
         downloadedFile = findOutput(uid);
         if (!downloadedFile || !fs.existsSync(downloadedFile)) {

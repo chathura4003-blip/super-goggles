@@ -29,8 +29,7 @@ async function main() {
         logger('Initializing Super Bot System...');
         startDashboard();
 
-        // Give dashboard a tick to start, then wire session manager to socket.io
-        await new Promise(r => setTimeout(r, 200));
+        // Wire session manager to socket.io immediately
         sessionMgr.setIO(io);
 
         // Start main bot session
