@@ -249,6 +249,8 @@ function DashboardPage() {
     { icon:'👥', label:'Known Users', value:stats.userCount, sub:'from database', accent:'#a78bfa' },
     { icon:'📁', label:'Cached Files', value:stats.fileCount, sub:stats.fileSizeMB+' MB', accent:'#60a5fa' },
     { icon:'⏱️', label:'Uptime', value:fmtUptime(stats.uptime), sub:`Node ${stats.nodeVersion}`, accent:'#4ade80' },
+    { icon:'⬇️', label:'Download Speed', value:stats.downloadSpeed||'0 KB/s', sub:'real-time (3s avg)', accent:'#34d399' },
+    { icon:'⬆️', label:'Upload Speed',   value:stats.uploadSpeed||'0 KB/s',   sub:'real-time (3s avg)', accent:'#fb923c' },
   ];
 
   return (
@@ -293,6 +295,14 @@ function DashboardPage() {
               <span style={{color:'#c4c0d8',fontFamily:'monospace'}}>{v}</span>
             </div>
           ))}
+          <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #2e2b4533',fontSize:'.85rem'}}>
+            <span style={{color:'#7c738a'}}>⬇ Download</span>
+            <span style={{color:'#34d399',fontFamily:'monospace',fontWeight:600}}>{stats.downloadSpeed||'0 KB/s'}</span>
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',fontSize:'.85rem'}}>
+            <span style={{color:'#7c738a'}}>⬆ Upload</span>
+            <span style={{color:'#fb923c',fontFamily:'monospace',fontWeight:600}}>{stats.uploadSpeed||'0 KB/s'}</span>
+          </div>
         </div>
       </div>
     </div>

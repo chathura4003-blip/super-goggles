@@ -15,6 +15,47 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
+// ── Network speed tracker (reads /proc/net/dev) ─────────────────────────────
+let _netLast = null;
+
+function readNetStats() {
+    try {
+        const raw = fs.readFileSync('/proc/net/dev', 'utf8');
+        let rxTotal = BigInt(0), txTotal = BigInt(0);
+        for (const line of raw.split('\n').slice(2)) {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length < 10) continue;
+            const iface = parts[0].replace(':', '');
+            if (iface === 'lo') continue; // skip loopback
+            rxTotal += BigInt(parts[1]);
+            txTotal += BigInt(parts[9]);
+        }
+        return { rx: rxTotal, tx: txTotal, ts: Date.now() };
+    } catch { return null; }
+}
+
+function fmtSpeed(kbs) {
+    if (kbs >= 1024) return (kbs / 1024).toFixed(2) + ' MB/s';
+    return kbs.toFixed(1) + ' KB/s';
+}
+
+// Rolling 3-second speed sample — keeps readings fresh between API polls
+let _netSpeed = { downloadKBs: 0, uploadKBs: 0 };
+_netLast = readNetStats();
+setInterval(() => {
+    const cur = readNetStats();
+    if (!cur || !_netLast) { _netLast = cur; return; }
+    const dt = (cur.ts - _netLast.ts) / 1000;
+    if (dt < 0.1) return;
+    const rxDiff = Number(cur.rx - _netLast.rx);
+    const txDiff = Number(cur.tx - _netLast.tx);
+    _netSpeed = {
+        downloadKBs: Math.max(0, rxDiff / dt / 1024),
+        uploadKBs:   Math.max(0, txDiff / dt / 1024),
+    };
+    _netLast = cur;
+}, 3000);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -92,6 +133,10 @@ app.get('/bot-api/stats', authMiddleware, (req, res) => {
         userCount,
         fileCount,
         fileSizeMB: (fileSize / 1024 / 1024).toFixed(1),
+        downloadKBs: _netSpeed.downloadKBs,
+        uploadKBs:   _netSpeed.uploadKBs,
+        downloadSpeed: fmtSpeed(_netSpeed.downloadKBs),
+        uploadSpeed:   fmtSpeed(_netSpeed.uploadKBs),
     });
 });
 
