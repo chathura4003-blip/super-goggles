@@ -9,6 +9,7 @@ const {
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const QRCode = require('qrcode');
+const qrcodeTerminal = require('qrcode-terminal');
 const { logger } = require('./logger');
 const { loadCommands, handleCommand } = require('./lib/handler');
 const { BROWSER, SESSION_DIR, AUTO_READ, AUTO_TYPING, PREFIX } = require('./config');
@@ -68,7 +69,10 @@ async function startBot() {
                 try {
                     const qrDataUrl = await QRCode.toDataURL(qr);
                     if (io) io.emit('qr', qrDataUrl);
-                    logger('[Main Bot] QR code generated. Scan with WhatsApp.');
+                    
+                    // Also log to console for GitHub Actions/headless environments
+                    qrcodeTerminal.generate(qr, { small: true });
+                    logger('[Main Bot] QR code generated. Scan with WhatsApp ^^^');
                 } catch (err) { logger(`QR Error: ${err.message}`); }
             }
 
