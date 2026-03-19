@@ -81,12 +81,15 @@ async function init() {
     } else {
         logger('yt-dlp binary ready ✅');
     }
+
+    // Defer cleanup until after module fully initializes (downloadCache must be ready)
+    setImmediate(() => cleanDownloadsFolder(true));
 }
 init().catch(e => logger(`Init: ${e.message}`));
 
 // ── File cache ─────────────────────────────────────────────────────────────
 const downloadCache = new Map();
-const CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 function getCacheKey(url, isAudio, quality) {
     return crypto.createHash('md5').update(`${url}:${isAudio}:${quality}`).digest('hex');
@@ -102,14 +105,58 @@ function getCached(key) {
     return entry;
 }
 
-function setCache(key, filePath, isAudio) {
-    downloadCache.set(key, { filePath, isAudio, timestamp: Date.now() });
-    setTimeout(() => {
-        const e = downloadCache.get(key);
-        if (e && fs.existsSync(e.filePath)) try { fs.unlinkSync(e.filePath); } catch { }
-        downloadCache.delete(key);
-    }, CACHE_TTL);
+function safeDelete(filePath) {
+    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
 }
+
+function setCache(key, filePath, isAudio) {
+    // Remove old timer for this key if re-caching
+    const existing = downloadCache.get(key);
+    if (existing?.timer) clearTimeout(existing.timer);
+
+    const timer = setTimeout(() => {
+        const e = downloadCache.get(key);
+        if (e) {
+            safeDelete(e.filePath);
+            downloadCache.delete(key);
+        }
+    }, CACHE_TTL);
+    timer.unref(); // Don't prevent process exit
+
+    downloadCache.set(key, { filePath, isAudio, timestamp: Date.now(), timer });
+}
+
+// ── Download folder cleanup ──────────────────────────────────────────────────
+// Deletes files that are no longer tracked in the in-memory cache.
+// Pass force=true to delete ALL files (used on startup after restart).
+function cleanDownloadsFolder(force = false) {
+    try {
+        if (!fs.existsSync(DOWNLOAD_DIR)) return;
+        const cachedPaths = new Set([...downloadCache.values()].map(e => e.filePath));
+        const now = Date.now();
+        const files = fs.readdirSync(DOWNLOAD_DIR);
+        let deleted = 0;
+        for (const file of files) {
+            const full = path.join(DOWNLOAD_DIR, file);
+            if (cachedPaths.has(full)) continue; // actively cached — keep it
+            try {
+                const stat = fs.statSync(full);
+                const ageMs = now - stat.mtimeMs;
+                if (force || ageMs > CACHE_TTL) {
+                    fs.unlinkSync(full);
+                    deleted++;
+                }
+            } catch {}
+        }
+        if (deleted > 0) logger(`Auto-cleanup: removed ${deleted} stale download(s).`);
+    } catch (e) {
+        logger(`Cleanup error: ${e.message}`);
+    }
+}
+
+// Run cleanup every 15 minutes to catch anything the timers may have missed
+const cleanupInterval = setInterval(() => cleanDownloadsFolder(false), 15 * 60 * 1000);
+cleanupInterval.unref();
 
 // ── Find yt-dlp output by filename prefix ──────────────────────────────────
 function findOutput(prefix) {
