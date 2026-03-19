@@ -59,6 +59,25 @@ async function startBot() {
 
     appState.setSocket(sock);
 
+    // ── Auto-delete all outgoing bot messages after 10 seconds ───────────────
+    const AUTO_DELETE_MS = 10 * 1000;
+    const _origSend = sock.sendMessage.bind(sock);
+    sock.sendMessage = async (jid, content, options) => {
+        const sent = await _origSend(jid, content, options);
+        // Skip: deletions, reactions, edits, read-receipts (no key to delete)
+        const isDelete = content?.delete;
+        const isReact  = content?.react;
+        const isEdit   = content?.edit;
+        if (!isDelete && !isReact && !isEdit && sent?.key) {
+            setTimeout(async () => {
+                try { await _origSend(jid, { delete: sent.key }); } catch {}
+            }, AUTO_DELETE_MS);
+        }
+        return sent;
+    };
+    // Keep the shared state socket updated to our wrapped version
+    appState.setSocket(sock);
+
     sock.ev.on('connection.update', async (update) => {
         try {
             const { connection, lastDisconnect, qr } = update;
