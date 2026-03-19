@@ -1,0 +1,10 @@
+node_modules/
+session/
+sessions/
+downloads/
+db.json
+.env
+yt-dlp.exe
+yt-dlp-linux
+*.log
+package-lock.json

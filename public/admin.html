@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Supreme MD Bot | Admin Panel</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: { extend: { colors: {
+      brand:{ 400:'#a78bfa', 500:'#8b5cf6', 600:'#7c3aed' },
+      dark:{ 800:'#1e1b2e', 900:'#13111e', card:'#1f1d30', border:'#2e2b45' }
+    }}}
+  }
+</script>
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#13111e;color:#e2e0f0;font-family:'Segoe UI',system-ui,sans-serif;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:#1e1b2e;}
+::-webkit-scrollbar-thumb{background:#4c4775;border-radius:3px;}
+.sidebar-link{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:10px;cursor:pointer;transition:all .2s;font-size:.9rem;color:#a09cc0;}
+.sidebar-link:hover{background:#2e2b45;color:#e2e0f0;}
+.sidebar-link.active{background:linear-gradient(135deg,#7c3aed22,#6d28d922);color:#a78bfa;border-left:3px solid #8b5cf6;}
+.card{background:#1f1d30;border:1px solid #2e2b45;border-radius:14px;padding:20px;}
+.badge{padding:3px 10px;border-radius:99px;font-size:.75rem;font-weight:600;}
+.badge-green{background:#16a34a22;color:#4ade80;border:1px solid #16a34a44;}
+.badge-red{background:#dc262622;color:#f87171;border:1px solid #dc262644;}
+.badge-yellow{background:#d9770622;color:#fbbf24;border:1px solid #d9770644;}
+.badge-blue{background:#2563eb22;color:#60a5fa;border:1px solid #2563eb44;}
+.badge-purple{background:#7c3aed22;color:#a78bfa;border:1px solid #7c3aed44;}
+.badge-gray{background:#37354f;color:#a09cc0;border:1px solid #4c4775;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:.875rem;font-weight:500;cursor:pointer;border:none;transition:all .2s;}
+.btn-primary{background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;}
+.btn-primary:hover{background:linear-gradient(135deg,#7c3aed,#6d28d9);transform:translateY(-1px);box-shadow:0 4px 15px #7c3aed44;}
+.btn-danger{background:#dc262611;color:#f87171;border:1px solid #dc262633;}
+.btn-danger:hover{background:#dc262622;}
+.btn-ghost{background:#2e2b4544;color:#a09cc0;border:1px solid #2e2b45;}
+.btn-ghost:hover{background:#2e2b45;color:#e2e0f0;}
+.btn-green{background:#16a34a22;color:#4ade80;border:1px solid #16a34a44;}
+.btn-green:hover{background:#16a34a33;}
+.input{background:#13111e;border:1px solid #2e2b45;border-radius:8px;padding:9px 13px;color:#e2e0f0;font-size:.875rem;width:100%;outline:none;transition:border-color .2s;}
+.input:focus{border-color:#8b5cf6;}
+.toast{position:fixed;top:20px;right:20px;z-index:9999;padding:12px 18px;border-radius:10px;font-size:.875rem;font-weight:500;animation:slideIn .3s ease;max-width:340px;}
+.toast-success{background:#16a34a;color:#fff;}
+.toast-error{background:#dc2626;color:#fff;}
+.toast-info{background:#2563eb;color:#fff;}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+.stat-card{background:linear-gradient(135deg,#1f1d30,#2a2640);border:1px solid #2e2b45;border-radius:14px;padding:20px;overflow:hidden;}
+.log-line{font-family:'Courier New',monospace;font-size:.78rem;padding:3px 0;border-bottom:1px solid #2e2b4522;color:#c4c0d8;}
+.toggle{position:relative;display:inline-block;width:46px;height:24px;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#2e2b45;border-radius:24px;transition:.3s;}
+.toggle-slider:before{position:absolute;content:'';height:18px;width:18px;left:3px;bottom:3px;background:#a09cc0;border-radius:50%;transition:.3s;}
+input:checked + .toggle-slider{background:#8b5cf6;}
+input:checked + .toggle-slider:before{transform:translateX(22px);background:#fff;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:10px 14px;font-size:.75rem;font-weight:600;color:#a09cc0;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #2e2b45;}
+td{padding:12px 14px;font-size:.875rem;border-bottom:1px solid #2e2b4533;color:#c4c0d8;}
+tr:hover td{background:#2e2b4522;}
+.modal-overlay{position:fixed;inset:0;background:#00000090;z-index:999;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:#1a1827;border:1px solid #2e2b45;border-radius:18px;padding:28px;width:100%;max-height:90vh;overflow-y:auto;}
+.qr-img{border-radius:12px;border:3px solid #8b5cf633;background:#fff;display:block;}
+.pair-code{font-family:monospace;font-size:2rem;font-weight:800;letter-spacing:.3em;color:#a78bfa;background:#7c3aed11;border:2px dashed #7c3aed44;border-radius:10px;padding:14px 20px;text-align:center;user-select:all;}
+.pulse{animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.spin{animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.session-card{background:#1a1827;border:1px solid #2e2b45;border-radius:14px;padding:18px;transition:border-color .2s;}
+.session-card:hover{border-color:#3d3a5a;}
+.session-card.connected{border-color:#16a34a55;}
+.session-card.awaiting{border-color:#d9770655;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const API = '';
+const socket = typeof io !== 'undefined' ? io() : null;
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+function api(path, opts = {}) {
+  const token = localStorage.getItem('admin_token');
+  return fetch(API + path, {
+    headers: { 'Content-Type':'application/json', ...(token?{Authorization:'Bearer '+token}:{}) },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  }).then(r => r.json());
+}
+
+function useToast() {
+  const [toasts, setToasts] = useState([]);
+  const show = (msg, type='success') => {
+    const id = Date.now();
+    setToasts(t => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4000);
+  };
+  const Toasts = () => <>{toasts.map(t => <div key={t.id} className={`toast toast-${t.type}`}>{t.msg}</div>)}</>;
+  return { show, Toasts };
+}
+
+function fmtUptime(s) {
+  if (s < 60) return s+'s';
+  if (s < 3600) return Math.floor(s/60)+'m '+Math.floor(s%60)+'s';
+  return Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m';
+}
+
+function extIcon(ext) {
+  return {mp4:'🎬',mp3:'🎧',m4a:'🎵',webm:'🎞️',mkv:'📽️',jpg:'🖼️',png:'🖼️',gif:'🎠',pdf:'📄'}[ext]||'📁';
+}
+
+function statusBadgeClass(s) {
+  if (s === 'Connected') return 'badge-green';
+  if (s === 'Connecting' || s === 'Restoring' || s === 'Initializing') return 'badge-yellow';
+  if (s === 'Awaiting QR Scan') return 'badge-blue';
+  if (s === 'Logged Out' || s === 'Error') return 'badge-red';
+  return 'badge-gray';
+}
+
+function StatusBadge({ status }) {
+  const icons = { Connected:'🟢', Disconnected:'🔴', Connecting:'🟡', 'Awaiting QR Scan':'📱',
+    'Logged Out':'🚫', Error:'❌', Restoring:'🔄', Initializing:'⏳' };
+  return <span className={`badge ${statusBadgeClass(status)}`}>{icons[status]||'⚪'} {status||'—'}</span>;
+}
+
+function Toggle({ checked, onChange }) {
+  return <label className="toggle"><input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)}/><span className="toggle-slider"></span></label>;
+}
+
+// ── Login Page ────────────────────────────────────────────────────────────
+function LoginPage({ onLogin }) {
+  const [form, setForm] = useState({ username:'', password:'' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault(); setLoading(true); setError('');
+    try {
+      const r = await fetch('/bot-api/auth/login', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form)
+      });
+      const d = await r.json();
+      if (d.token) { localStorage.setItem('admin_token', d.token); onLogin(d); }
+      else setError(d.error||'Login failed');
+    } catch { setError('Server error'); }
+    setLoading(false);
+  }
+
+  return (
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'radial-gradient(ellipse at 30% 30%,#7c3aed11,transparent 60%),radial-gradient(ellipse at 70% 70%,#2563eb11,transparent 60%),#13111e'}}>
+      <div className="card" style={{width:'100%',maxWidth:400,padding:36}}>
+        <div style={{textAlign:'center',marginBottom:28}}>
+          <div style={{fontSize:'2.5rem',marginBottom:8}}>🤖</div>
+          <h1 style={{fontSize:'1.5rem',fontWeight:700,background:'linear-gradient(135deg,#a78bfa,#60a5fa)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Supreme MD Bot</h1>
+          <p style={{color:'#7c738a',fontSize:'.85rem',marginTop:4}}>Admin Panel Login</p>
+        </div>
+        <form onSubmit={submit}>
+          <div style={{marginBottom:14}}>
+            <label style={{display:'block',fontSize:'.78rem',color:'#a09cc0',marginBottom:6}}>USERNAME</label>
+            <input className="input" placeholder="admin" value={form.username} onChange={e=>setForm(f=>({...f,username:e.target.value}))} autoFocus/>
+          </div>
+          <div style={{marginBottom:20}}>
+            <label style={{display:'block',fontSize:'.78rem',color:'#a09cc0',marginBottom:6}}>PASSWORD</label>
+            <input className="input" type="password" placeholder="••••••••" value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))}/>
+          </div>
+          {error && <div style={{background:'#dc262611',border:'1px solid #dc262633',borderRadius:8,padding:'10px 14px',color:'#f87171',fontSize:'.85rem',marginBottom:14}}>{error}</div>}
+          <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',padding:'11px 16px',fontSize:'1rem'}} disabled={loading}>
+            {loading?'⏳ Logging in...':'🔐 Login'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────
+const NAV = [
+  {id:'dashboard',icon:'📊',label:'Dashboard'},
+  {id:'sessions', icon:'📱',label:'Sessions'},
+  {id:'broadcast',icon:'📢',label:'Broadcast'},
+  {id:'settings', icon:'⚙️', label:'Settings'},
+  {id:'economy',  icon:'💰',label:'Economy'},
+  {id:'files',    icon:'📁',label:'Files'},
+  {id:'logs',     icon:'📜',label:'Logs'},
+];
+
+function Sidebar({ page, setPage, onLogout, botStatus }) {
+  return (
+    <div style={{width:220,background:'#1a1827',borderRight:'1px solid #2e2b45',display:'flex',flexDirection:'column',padding:'20px 12px',flexShrink:0}}>
+      <div style={{textAlign:'center',marginBottom:24,padding:'0 8px'}}>
+        <div style={{fontSize:'1.8rem',marginBottom:4}}>🤖</div>
+        <div style={{fontWeight:700,fontSize:'.95rem',color:'#e2e0f0'}}>Supreme MD</div>
+        <div style={{marginTop:6}}><StatusBadge status={botStatus}/></div>
+      </div>
+      <nav style={{flex:1}}>
+        {NAV.map(n => (
+          <div key={n.id} className={`sidebar-link ${page===n.id?'active':''}`} onClick={()=>setPage(n.id)}>
+            <span style={{fontSize:'1.1rem'}}>{n.icon}</span><span>{n.label}</span>
+          </div>
+        ))}
+      </nav>
+      <button className="btn btn-danger" style={{width:'100%',justifyContent:'center',marginTop:12}} onClick={onLogout}>🚪 Logout</button>
+    </div>
+  );
+}
+
+// ── Dashboard Page ────────────────────────────────────────────────────────
+function DashboardPage() {
+  const [stats, setStats] = useState(null);
+  const chartRef = useRef(null);
+  const chartInst = useRef(null);
+
+  useEffect(() => {
+    const load = () => api('/bot-api/stats').then(s => setStats(s));
+    load(); const iv = setInterval(load, 8000); return () => clearInterval(iv);
+  }, []);
+
+  useEffect(() => {
+    if (!stats||!chartRef.current) return;
+    if (chartInst.current) chartInst.current.destroy();
+    chartInst.current = new Chart(chartRef.current, {
+      type:'doughnut',
+      data:{ labels:['RAM Used','RAM Free'], datasets:[{ data:[stats.memUsed, stats.memTotal-stats.memUsed], backgroundColor:['#8b5cf6','#2e2b45'], borderWidth:0 }] },
+      options:{ plugins:{ legend:{ labels:{ color:'#a09cc0', font:{ size:11 } } } }, cutout:'72%' }
+    });
+  }, [stats]);
+
+  if (!stats) return <div style={{padding:40,textAlign:'center',color:'#7c738a'}}>⏳ Loading...</div>;
+
+  const cards = [
+    { icon:'📱', label:'Bot Status', value:<StatusBadge status={stats.status}/>, sub: stats.number||'Not connected' },
+    { icon:'👥', label:'Known Users', value:stats.userCount, sub:'from database', accent:'#a78bfa' },
+    { icon:'📁', label:'Cached Files', value:stats.fileCount, sub:stats.fileSizeMB+' MB', accent:'#60a5fa' },
+    { icon:'⏱️', label:'Uptime', value:fmtUptime(stats.uptime), sub:`Node ${stats.nodeVersion}`, accent:'#4ade80' },
+  ];
+
+  return (
+    <div style={{padding:24}}>
+      <h2 style={{fontSize:'1.4rem',fontWeight:700,marginBottom:20,color:'#e2e0f0'}}>📊 Dashboard</h2>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16,marginBottom:24}}>
+        {cards.map((c,i) => (
+          <div key={i} className="stat-card">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+              <div>
+                <div style={{fontSize:'.75rem',color:'#7c738a',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>{c.label}</div>
+                <div style={{fontSize:'1.5rem',fontWeight:700,color:c.accent||'#e2e0f0'}}>{c.value}</div>
+                <div style={{fontSize:'.78rem',color:'#7c738a',marginTop:4}}>{c.sub}</div>
+              </div>
+              <div style={{fontSize:'1.6rem',opacity:.6}}>{c.icon}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <div className="card">
+          <div style={{fontWeight:600,marginBottom:16,color:'#c4c0d8'}}>💾 Memory Usage</div>
+          <div style={{position:'relative',height:180,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <canvas ref={chartRef}></canvas>
+            <div style={{position:'absolute',textAlign:'center',pointerEvents:'none'}}>
+              <div style={{fontSize:'1.4rem',fontWeight:700,color:'#a78bfa'}}>{stats.memPercent}%</div>
+              <div style={{fontSize:'.72rem',color:'#7c738a'}}>of {stats.memTotal}MB</div>
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <div style={{fontWeight:600,marginBottom:16,color:'#c4c0d8'}}>🖥️ System Info</div>
+          {[
+            ['Platform', stats.platform],
+            ['CPU Load', stats.cpuLoad+' (1min)'],
+            ['RAM Used', stats.memUsed+' / '+stats.memTotal+' MB'],
+            ['Downloads', stats.fileCount+' files · '+stats.fileSizeMB+' MB'],
+            ['Connected', stats.connectedAt ? new Date(stats.connectedAt).toLocaleString() : 'N/A'],
+          ].map(([k,v]) => (
+            <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #2e2b4533',fontSize:'.85rem'}}>
+              <span style={{color:'#7c738a'}}>{k}</span>
+              <span style={{color:'#c4c0d8',fontFamily:'monospace'}}>{v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Session Connect Modal ─────────────────────────────────────────────────
+function ConnectModal({ onClose, onCreated, toast }) {
+  const [step, setStep] = useState('id');   // id → connecting → qr_or_pair
+  const [sessionId, setSessionId] = useState('');
+  const [method, setMethod] = useState('qr'); // qr | pair
+  const [phone, setPhone] = useState('');
+  const [qrData, setQrData] = useState(null);
+  const [pairCode, setPairCode] = useState(null);
+  const [status, setStatus] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Listen for live events from this session
+  useEffect(() => {
+    if (!socket || !sessionId) return;
+    const onUpdate = (d) => {
+      if (d.id !== sessionId) return;
+      setStatus(d.status);
+      if (d.qr) setQrData(d.qr);
+      if (d.pairCode) setPairCode(d.pairCode);
+      if (d.status === 'Connected') {
+        toast(`Session "${sessionId}" connected! ✅`);
+        onCreated();
+        onClose();
+      }
+    };
+    const onQr = (d) => {
+      if (d.id !== sessionId) return;
+      setQrData(d.qr);
+      setStatus('Awaiting QR Scan');
+    };
+    socket.on('session:update', onUpdate);
+    socket.on('session:qr', onQr);
+    return () => { socket.off('session:update', onUpdate); socket.off('session:qr', onQr); };
+  }, [sessionId]);
+
+  async function create() {
+    const id = sessionId.trim();
+    if (!id || !/^[a-zA-Z0-9_-]{2,30}$/.test(id)) {
+      return setError('Use 2–30 letters, numbers, _ or -');
+    }
+    setLoading(true); setError('');
+    const r = await api('/bot-api/sessions', { method:'POST', body:{ id } });
+    if (r.error) { setError(r.error); setLoading(false); return; }
+    setStep('connecting');
+    setStatus('Connecting...');
+    setLoading(false);
+    // wait for QR event via socket
+  }
+
+  async function getPairCode() {
+    const cleaned = phone.replace(/[^0-9]/g, '');
+    if (!cleaned || cleaned.length < 7) return setError('Enter a valid phone number');
+    setLoading(true); setError('');
+    const r = await api(`/api/sessions/${sessionId}/paircode`, { method:'POST', body:{ phone } });
+    if (r.error) { setError(r.error); setLoading(false); return; }
+    setPairCode(r.code);
+    setLoading(false);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal" style={{maxWidth:480}}>
+        {/* Header */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}>
+          <h3 style={{fontSize:'1.2rem',fontWeight:700,color:'#e2e0f0'}}>➕ Connect New Session</h3>
+          <button className="btn btn-ghost" style={{padding:'4px 10px'}} onClick={onClose}>✕</button>
+        </div>
+
+        {/* Step 1: Enter session ID */}
+        {step === 'id' && (
+          <>
+            <div style={{marginBottom:18}}>
+              <label style={{display:'block',fontSize:'.78rem',color:'#a09cc0',marginBottom:6}}>SESSION NAME / ID</label>
+              <input className="input" placeholder="e.g. user1 or mybot" value={sessionId}
+                onChange={e=>setSessionId(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&create()} autoFocus/>
+              <div style={{fontSize:'.75rem',color:'#7c738a',marginTop:5}}>Letters, numbers, _ and - only. Used as folder name.</div>
+            </div>
+
+            <div style={{marginBottom:20}}>
+              <label style={{display:'block',fontSize:'.78rem',color:'#a09cc0',marginBottom:10}}>CONNECTION METHOD</label>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                {[['qr','📷 QR Code','Scan with WhatsApp'],['pair','🔢 Pair Code','Enter code in WhatsApp']].map(([val,title,sub])=>(
+                  <div key={val} onClick={()=>setMethod(val)} style={{
+                    border:`2px solid ${method===val?'#8b5cf6':'#2e2b45'}`,
+                    borderRadius:10,padding:'12px 14px',cursor:'pointer',
+                    background:method===val?'#7c3aed11':'transparent',transition:'all .2s'
+                  }}>
+                    <div style={{fontWeight:600,marginBottom:2}}>{title}</div>
+                    <div style={{fontSize:'.78rem',color:'#7c738a'}}>{sub}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {error && <div style={{background:'#dc262611',border:'1px solid #dc262633',borderRadius:8,padding:'10px 14px',color:'#f87171',fontSize:'.85rem',marginBottom:14}}>{error}</div>}
+
+            <div style={{display:'flex',gap:10}}>
+              <button className="btn btn-primary" onClick={create} disabled={loading} style={{flex:1,justifyContent:'center'}}>
+                {loading?'⏳ Starting...':'🚀 Create Session'}
+              </button>
+              <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            </div>
+          </>
+        )}
+
+        {/* Step 2: Connecting / show QR or pair code */}
+        {step === 'connecting' && (
+          <>
+            <div style={{textAlign:'center',marginBottom:18}}>
+              <StatusBadge status={status||'Connecting'}/>
+              <div style={{fontSize:'.82rem',color:'#7c738a',marginTop:8}}>Session: <code style={{color:'#a78bfa'}}>{sessionId}</code></div>
+            </div>
+
+            {/* Method tabs */}
+            <div style={{display:'flex',borderBottom:'1px solid #2e2b45',marginBottom:20,gap:4}}>
+              {[['qr','📷 QR Code'],['pair','🔢 Pair Code']].map(([val,lbl])=>(
+                <button key={val} onClick={()=>setMethod(val)} style={{
+                  padding:'8px 16px',border:'none',background:'transparent',cursor:'pointer',
+                  color:method===val?'#a78bfa':'#7c738a',borderBottom:method===val?'2px solid #8b5cf6':'2px solid transparent',
+                  fontWeight:method===val?600:400,fontSize:'.875rem',transition:'all .2s'
+                }}>{lbl}</button>
+              ))}
+            </div>
+
+            {/* QR Tab */}
+            {method === 'qr' && (
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:16}}>
+                {qrData ? (
+                  <>
+                    <img src={qrData} alt="QR Code" className="qr-img" style={{width:240,height:240}}/>
+                    <div style={{textAlign:'center'}}>
+                      <div style={{fontWeight:600,color:'#c4c0d8',marginBottom:4}}>Open WhatsApp → Linked Devices → Link a Device</div>
+                      <div style={{fontSize:'.8rem',color:'#7c738a'}}>QR expires in ~60 seconds — it auto-refreshes</div>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{width:240,height:240,background:'#13111e',border:'2px dashed #2e2b45',borderRadius:12,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12}}>
+                    <div className="spin" style={{fontSize:'2rem'}}>⏳</div>
+                    <div style={{fontSize:'.85rem',color:'#7c738a'}}>Generating QR...</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Pair Code Tab */}
+            {method === 'pair' && (
+              <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                {!pairCode ? (
+                  <>
+                    <div style={{background:'#2563eb11',border:'1px solid #2563eb33',borderRadius:10,padding:14,fontSize:'.85rem',color:'#93c5fd'}}>
+                      📌 <strong>How it works:</strong> Enter your WhatsApp number → Get a code → Open WhatsApp → Linked Devices → Link with phone number → Enter the code
+                    </div>
+                    <div>
+                      <label style={{display:'block',fontSize:'.78rem',color:'#a09cc0',marginBottom:6}}>PHONE NUMBER (with country code, no +)</label>
+                      <input className="input" placeholder="e.g. 94712345678" value={phone} onChange={e=>setPhone(e.target.value)} type="tel"/>
+                    </div>
+                    {error && <div style={{background:'#dc262611',border:'1px solid #dc262633',borderRadius:8,padding:'10px 14px',color:'#f87171',fontSize:'.85rem'}}>{error}</div>}
+                    <button className="btn btn-primary" onClick={getPairCode} disabled={loading} style={{alignSelf:'flex-start'}}>
+                      {loading?'⏳ Requesting...':'📩 Get Pair Code'}
+                    </button>
+                  </>
+                ) : (
+                  <div style={{textAlign:'center',display:'flex',flexDirection:'column',gap:14,alignItems:'center'}}>
+                    <div style={{fontSize:'.9rem',color:'#c4c0d8'}}>Enter this code in WhatsApp → Linked Devices → Link with phone number:</div>
+                    <div className="pair-code">{pairCode.match(/.{1,4}/g)?.join('-')||pairCode}</div>
+                    <div style={{fontSize:'.8rem',color:'#7c738a'}}>Code is valid for ~60 seconds • Waiting for confirmation...</div>
+                    <div className="pulse" style={{color:'#a78bfa',fontSize:'.85rem'}}>⏳ Waiting for WhatsApp...</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{marginTop:20,paddingTop:16,borderTop:'1px solid #2e2b45',display:'flex',justifyContent:'flex-end'}}>
+              <button className="btn btn-ghost" onClick={onClose}>Close (session stays active)</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Sessions Page ─────────────────────────────────────────────────────────
+function SessionsPage({ toast }) {
+  const [mainSession, setMainSession] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [viewQR, setViewQR] = useState(null); // sessionId for live QR view
+
+  async function loadAll() {
+    const [main, list] = await Promise.all([
+      api('/bot-api/bot/session'),
+      api('/bot-api/sessions'),
+    ]);
+    setMainSession(main);
+    setSessions(Array.isArray(list) ? list : []);
+  }
+
+  useEffect(() => {
+    loadAll();
+    if (!socket) return;
+    const onUpdate = (d) => {
+      setSessions(prev => prev.map(s => s.id === d.id ? { ...s, ...d } : s));
+    };
+    const onQr = (d) => {
+      setSessions(prev => prev.map(s => s.id === d.id ? { ...s, qrDataUrl: d.qr, qrAvailable: true, status: 'Awaiting QR Scan' } : s));
+    };
+    const onRemoved = (d) => {
+      setSessions(prev => prev.filter(s => s.id !== d.id));
+    };
+    socket.on('session:update', onUpdate);
+    socket.on('session:qr', onQr);
+    socket.on('session:removed', onRemoved);
+    return () => {
+      socket.off('session:update', onUpdate);
+      socket.off('session:qr', onQr);
+      socket.off('session:removed', onRemoved);
+    };
+  }, []);
+
+  async function removeSession(id) {
+    if (!confirm(`Remove session "${id}"? This will log it out and delete its data.`)) return;
+    const r = await api(`/api/sessions/${id}`, { method:'DELETE' });
+    if (r.ok) { toast(`Session "${id}" removed`); loadAll(); }
+    else toast(r.error, 'error');
+  }
+
+  async function logoutMain() {
+    if (!confirm('Logout the main bot session?')) return;
+    const r = await api('/bot-api/bot/session/logout', { method:'POST', body:{} });
+    if (r.ok) { toast('Main session logged out'); loadAll(); }
+    else toast(r.error, 'error');
+  }
+
+  const sessionCardColor = (status) => {
+    if (status === 'Connected') return '#16a34a33';
+    if (status === 'Awaiting QR Scan') return '#2563eb33';
+    return '#2e2b45';
+  };
+
+  return (
+    <div style={{padding:24}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:10}}>
+        <div>
+          <h2 style={{fontSize:'1.4rem',fontWeight:700,color:'#e2e0f0'}}>📱 Session Manager</h2>
+          <div style={{fontSize:'.8rem',color:'#7c738a',marginTop:3}}>{sessions.length} additional session(s)</div>
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <button className="btn btn-ghost" onClick={loadAll}>🔄 Refresh</button>
+          <button className="btn btn-primary" onClick={()=>setShowModal(true)}>➕ New Session</button>
+        </div>
+      </div>
+
+      {/* Main Bot Session */}
+      {mainSession && (
+        <div style={{marginBottom:24}}>
+          <div style={{fontSize:'.8rem',color:'#a09cc0',fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:10}}>🤖 Main Bot Session</div>
+          <div className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14,borderColor:mainSession.status==='Connected'?'#16a34a55':'#2e2b45'}}>
+            <div style={{display:'flex',alignItems:'center',gap:16}}>
+              <div style={{width:44,height:44,borderRadius:'50%',background:'linear-gradient(135deg,#8b5cf6,#7c3aed)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.3rem',flexShrink:0}}>🤖</div>
+              <div>
+                <div style={{fontWeight:600,color:'#e2e0f0',marginBottom:3}}>Main Bot</div>
+                <div style={{fontFamily:'monospace',fontSize:'.85rem',color:'#a78bfa'}}>{mainSession.number||'Not connected'}</div>
+                <div style={{fontSize:'.75rem',color:'#7c738a',marginTop:2}}>{mainSession.connectedAt ? new Date(mainSession.connectedAt).toLocaleString() : '—'}</div>
+              </div>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:12}}>
+              <StatusBadge status={mainSession.status}/>
+              {mainSession.status === 'Connected' && (
+                <button className="btn btn-danger" style={{fontSize:'.8rem',padding:'5px 12px'}} onClick={logoutMain}>🚪 Logout</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Multi-sessions */}
+      <div style={{fontSize:'.8rem',color:'#a09cc0',fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:10}}>👥 Additional Sessions</div>
+      {sessions.length === 0 ? (
+        <div className="card" style={{textAlign:'center',padding:48}}>
+          <div style={{fontSize:'3rem',marginBottom:12}}>📱</div>
+          <div style={{fontWeight:600,color:'#c4c0d8',marginBottom:6}}>No additional sessions</div>
+          <div style={{color:'#7c738a',fontSize:'.875rem',marginBottom:18}}>Add new WhatsApp sessions using QR or Pair Code</div>
+          <button className="btn btn-primary" onClick={()=>setShowModal(true)}>➕ Connect New Session</button>
+        </div>
+      ) : (
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:16}}>
+          {sessions.map(s => (
+            <div key={s.id} className="session-card" style={{borderColor:s.status==='Connected'?'#16a34a55':s.status==='Awaiting QR Scan'?'#2563eb55':'#2e2b45'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14}}>
+                <div style={{display:'flex',alignItems:'center',gap:12}}>
+                  <div style={{width:40,height:40,borderRadius:'50%',background:`linear-gradient(135deg,${s.status==='Connected'?'#16a34a,#15803d':'#4c4775,#3d3a5a'})`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',flexShrink:0}}>
+                    {s.status==='Connected'?'✅':s.status==='Awaiting QR Scan'?'📷':'📱'}
+                  </div>
+                  <div>
+                    <div style={{fontWeight:600,color:'#e2e0f0'}}>{s.id}</div>
+                    <div style={{fontFamily:'monospace',fontSize:'.82rem',color:'#a78bfa'}}>{s.number||'—'}</div>
+                  </div>
+                </div>
+                <button className="btn btn-danger" style={{fontSize:'.75rem',padding:'4px 10px'}} onClick={()=>removeSession(s.id)}>🗑️</button>
+              </div>
+
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+                <StatusBadge status={s.status}/>
+                <div style={{display:'flex',gap:6}}>
+                  {s.qrAvailable && (
+                    <button className="btn btn-ghost" style={{fontSize:'.78rem',padding:'4px 10px'}} onClick={()=>setViewQR(s.id)}>📷 View QR</button>
+                  )}
+                  {s.startedAt && (
+                    <div style={{fontSize:'.72rem',color:'#7c738a',alignSelf:'center'}}>{new Date(s.startedAt).toLocaleTimeString()}</div>
+                  )}
+                </div>
+              </div>
+
+              {s.pairCode && (
+                <div style={{marginTop:12,background:'#7c3aed11',border:'1px dashed #7c3aed44',borderRadius:8,padding:'8px 12px',textAlign:'center',fontFamily:'monospace',color:'#a78bfa',fontWeight:700,letterSpacing:'.2em'}}>
+                  {s.pairCode.match(/.{1,4}/g)?.join('-')||s.pairCode}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* QR Viewer modal */}
+      {viewQR && (() => {
+        const s = sessions.find(x => x.id === viewQR);
+        return s ? (
+          <div className="modal-overlay" onClick={()=>setViewQR(null)}>
+            <div className="modal" style={{maxWidth:340,textAlign:'center'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                <h3 style={{fontWeight:700,color:'#e2e0f0'}}>📷 {s.id} — QR Code</h3>
+                <button className="btn btn-ghost" style={{padding:'4px 10px'}} onClick={()=>setViewQR(null)}>✕</button>
+              </div>
+              <StatusBadge status={s.status}/>
+              <div style={{marginTop:16}}>
+                {s.qrDataUrl ? (
+                  <img src={s.qrDataUrl} alt="QR" className="qr-img" style={{width:260,height:260,margin:'0 auto'}}/>
+                ) : (
+                  <div style={{width:260,height:260,background:'#13111e',border:'2px dashed #2e2b45',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto',color:'#7c738a'}}>No QR available</div>
+                )}
+              </div>
+              <div style={{marginTop:14,fontSize:'.8rem',color:'#7c738a'}}>Open WhatsApp → Linked Devices → Link a Device</div>
+            </div>
+          </div>
+        ) : null;
+      })()}
+
+      {/* Create session modal */}
+      {showModal && (
+        <ConnectModal
+          onClose={()=>setShowModal(false)}
+          onCreated={loadAll}
+          toast={toast}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Broadcast Page ────────────────────────────────────────────────────────
+function BroadcastPage({ toast }) {
+  const [msg, setMsg] = useState('');
+  const [targets, setTargets] = useState('');
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function send() {
+    if (!msg.trim()) return toast('Enter a message', 'error');
+    setLoading(true); setResult(null);
+    const jids = targets.trim() ? targets.split('\n').map(s=>s.trim()).filter(Boolean).map(n=>n.includes('@')?n:n+'@s.whatsapp.net') : [];
+    const r = await api('/bot-api/broadcast', { method:'POST', body:{ message:msg, targets:jids.length?jids:undefined } });
+    if (r.error) toast(r.error, 'error'); else { setResult(r); toast(`Sent to ${r.sent} users!`); }
+    setLoading(false);
+  }
+
+  return (
+    <div style={{padding:24}}>
+      <h2 style={{fontSize:'1.4rem',fontWeight:700,marginBottom:20,color:'#e2e0f0'}}>📢 Broadcast</h2>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <div className="card" style={{display:'flex',flexDirection:'column',gap:14}}>
+          <div style={{fontWeight:600,color:'#c4c0d8'}}>✉️ Compose Message</div>
+          <div>
+            <label style={{display:'block',fontSize:'.78rem',color:'#a09cc0',marginBottom:6}}>MESSAGE</label>
+            <textarea className="input" rows={6} style={{resize:'vertical'}} placeholder="Type your broadcast message..." value={msg} onChange={e=>setMsg(e.target.value)}/>
+          </div>
+          <div>
+            <label style={{display:'block',fontSize:'.78rem',color:'#a09cc0',marginBottom:6}}>TARGET NUMBERS (leave empty for all users)</label>
+            <textarea className="input" rows={4} style={{resize:'vertical',fontFamily:'monospace',fontSize:'.8rem'}} placeholder={"94712345678\n94771234567"} value={targets} onChange={e=>setTargets(e.target.value)}/>
+          </div>
+          <button className="btn btn-primary" style={{alignSelf:'flex-start'}} onClick={send} disabled={loading}>
+            {loading?'⏳ Sending...':'📤 Send Broadcast'}
+          </button>
+        </div>
+        <div className="card">
+          <div style={{fontWeight:600,marginBottom:16,color:'#c4c0d8'}}>📈 Result</div>
+          {result ? (
+            <div style={{display:'flex',flexDirection:'column',gap:12}}>
+              {[['Total',result.total||'—','#a09cc0'],['✅ Sent',result.sent,'#4ade80'],['❌ Failed',result.failed,result.failed>0?'#f87171':'#a09cc0']].map(([l,v,c])=>(
+                <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'10px 14px',background:'#13111e',borderRadius:8}}>
+                  <span style={{color:'#a09cc0'}}>{l}</span><span style={{fontWeight:700,color:c}}>{v}</span>
+                </div>
+              ))}
+            </div>
+          ) : <div style={{textAlign:'center',padding:30,color:'#7c738a'}}>No broadcast sent yet</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Settings Page ─────────────────────────────────────────────────────────
+function SettingsPage({ toast }) {
+  const [cfg, setCfg] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [restarting, setRestarting] = useState(false);
+
+  useEffect(() => { api('/bot-api/settings').then(d=>setCfg(d)); }, []);
+
+  async function save() {
+    setSaving(true);
+    const r = await api('/bot-api/settings', { method:'POST', body:cfg });
+    if (r.ok) toast('Settings saved!'); else toast(r.error,'error');
+    setSaving(false);
+  }
+
+  async function restart() {
+    if (!confirm('Restart the bot? It will briefly go offline.')) return;
+    setRestarting(true);
+    const r = await api('/bot-api/admin/restart', { method:'POST', body:{} });
+    toast(r.message||r.error, r.ok?'success':'error');
+    setTimeout(()=>setRestarting(false), 6000);
+  }
+
+  if (!cfg) return <div style={{padding:40,textAlign:'center',color:'#7c738a'}}>Loading...</div>;
+
+  return (
+    <div style={{padding:24}}>
+      <h2 style={{fontSize:'1.4rem',fontWeight:700,marginBottom:20,color:'#e2e0f0'}}>⚙️ Bot Settings</h2>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <div className="card" style={{display:'flex',flexDirection:'column',gap:16}}>
+          <div style={{fontWeight:600,color:'#c4c0d8'}}>🤖 Configuration</div>
+          {[['Bot Name','botName','text'],['Command Prefix','prefix','text'],['Owner Number','ownerNumber','text']].map(([label,key,type])=>(
+            <div key={key}>
+              <label style={{display:'block',fontSize:'.78rem',color:'#a09cc0',marginBottom:6}}>{label.toUpperCase()}</label>
+              <input className="input" type={type} value={cfg[key]||''} onChange={e=>setCfg(c=>({...c,[key]:e.target.value}))} disabled={key==='ownerNumber'} style={key==='ownerNumber'?{opacity:.6}:{}}/>
+            </div>
+          ))}
+          <button className="btn btn-primary" style={{alignSelf:'flex-start'}} onClick={save} disabled={saving}>
+            {saving?'⏳ Saving...':'💾 Save Settings'}
+          </button>
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          <div className="card">
+            <div style={{fontWeight:600,marginBottom:16,color:'#c4c0d8'}}>🔧 Feature Toggles</div>
+            {[['autoRead','📖 Auto Read'],['autoTyping','⌨️ Auto Typing'],['nsfwEnabled','🔞 NSFW Content']].map(([key,label])=>(
+              <div key={key} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #2e2b4533'}}>
+                <span style={{fontSize:'.875rem',color:'#c4c0d8'}}>{label}</span>
+                <Toggle checked={!!cfg[key]} onChange={v=>setCfg(c=>({...c,[key]:v}))}/>
+              </div>
+            ))}
+          </div>
+          <div className="card" style={{background:'#dc262608',border:'1px solid #dc262633'}}>
+            <div style={{fontWeight:600,marginBottom:10,color:'#f87171'}}>⚠️ Danger Zone</div>
+            <p style={{fontSize:'.82rem',color:'#a09cc0',marginBottom:12}}>Restart the bot. It will briefly go offline and reconnect.</p>
+            <button className="btn btn-danger" onClick={restart} disabled={restarting}>
+              {restarting?'⏳ Restarting...':'🔄 Restart Bot'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Economy Page ──────────────────────────────────────────────────────────
+function EconomyPage({ toast }) {
+  const [users, setUsers] = useState([]);
+  const [search, setSearch] = useState('');
+  const [editing, setEditing] = useState(null);
+  const [newBal, setNewBal] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => { setLoading(true); const d=await api('/bot-api/economy'); setUsers(Array.isArray(d)?d:[]); setLoading(false); };
+  useEffect(()=>{ load(); },[]);
+
+  async function saveEdit() {
+    const r = await api('/bot-api/economy/edit',{ method:'POST', body:{ jid:editing.jid, balance:Number(newBal) } });
+    if (r.ok) { toast('Balance updated!'); setEditing(null); load(); } else toast(r.error,'error');
+  }
+
+  async function resetAll() {
+    if (!confirm('Reset ALL balances to 0?')) return;
+    const r = await api('/bot-api/economy/reset',{ method:'POST', body:{} });
+    if (r.ok) { toast('Economy reset!'); load(); } else toast(r.error,'error');
+  }
+
+  const filtered = users.filter(u => u.number.includes(search)||u.jid.includes(search));
+
+  return (
+    <div style={{padding:24}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:10}}>
+        <h2 style={{fontSize:'1.4rem',fontWeight:700,color:'#e2e0f0'}}>💰 Economy</h2>
+        <div style={{display:'flex',gap:10}}>
+          <input className="input" style={{width:220}} placeholder="Search number..." value={search} onChange={e=>setSearch(e.target.value)}/>
+          <button className="btn btn-danger" onClick={resetAll}>🗑️ Reset All</button>
+          <button className="btn btn-ghost" onClick={load}>🔄 Refresh</button>
+        </div>
+      </div>
+      <div className="card">
+        {loading ? <div style={{textAlign:'center',padding:40,color:'#7c738a'}}>Loading...</div> : (
+          <table>
+            <thead><tr><th>Number</th><th>Balance</th><th>Premium</th><th>Wins</th><th>Last Daily</th><th>Edit</th></tr></thead>
+            <tbody>
+              {filtered.map(u=>(
+                <tr key={u.jid}>
+                  <td style={{fontFamily:'monospace',color:'#e2e0f0'}}>{u.number}</td>
+                  <td><span style={{fontWeight:700,color:'#fbbf24'}}>💵 {u.balance.toLocaleString()}</span></td>
+                  <td>{u.premium?<span className="badge badge-purple">⭐ Premium</span>:<span style={{color:'#7c738a'}}>—</span>}</td>
+                  <td style={{color:'#60a5fa'}}>{u.wins}</td>
+                  <td style={{fontSize:'.78rem',color:'#7c738a'}}>{u.dailyLast?new Date(u.dailyLast).toLocaleDateString():'—'}</td>
+                  <td><button className="btn btn-ghost" style={{fontSize:'.8rem',padding:'5px 10px'}} onClick={()=>{setEditing(u);setNewBal(String(u.balance));}}>✏️ Edit</button></td>
+                </tr>
+              ))}
+              {!filtered.length && <tr><td colSpan={6} style={{textAlign:'center',padding:30,color:'#7c738a'}}>No users found</td></tr>}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {editing && (
+        <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setEditing(null)}>
+          <div className="modal" style={{maxWidth:380}}>
+            <div style={{fontWeight:700,marginBottom:16,fontSize:'1.1rem',color:'#e2e0f0'}}>✏️ Edit Balance</div>
+            <div style={{marginBottom:8,color:'#a09cc0',fontSize:'.85rem'}}>User: <span style={{fontFamily:'monospace',color:'#c4c0d8'}}>{editing.number}</span></div>
+            <div style={{marginBottom:16}}>
+              <label style={{display:'block',fontSize:'.78rem',color:'#a09cc0',marginBottom:6}}>NEW BALANCE</label>
+              <input className="input" type="number" value={newBal} onChange={e=>setNewBal(e.target.value)} autoFocus/>
+            </div>
+            <div style={{display:'flex',gap:10}}>
+              <button className="btn btn-primary" onClick={saveEdit}>💾 Save</button>
+              <button className="btn btn-ghost" onClick={()=>setEditing(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Files Page ────────────────────────────────────────────────────────────
+function FilesPage({ toast }) {
+  const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const load = async () => { setLoading(true); const d=await api('/bot-api/files'); setFiles(Array.isArray(d)?d:[]); setLoading(false); };
+  useEffect(()=>{ load(); },[]);
+
+  async function del(name) {
+    if (!confirm(`Delete "${name}"?`)) return;
+    const r = await api('/bot-api/files/'+encodeURIComponent(name),{ method:'DELETE' });
+    if (r.ok) { toast('File deleted'); load(); } else toast(r.error,'error');
+  }
+
+  const filtered = files.filter(f=>f.name.toLowerCase().includes(search.toLowerCase()));
+  const totalMB = files.reduce((s,f)=>s+parseFloat(f.sizeMB),0).toFixed(1);
+
+  return (
+    <div style={{padding:24}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:10}}>
+        <div>
+          <h2 style={{fontSize:'1.4rem',fontWeight:700,color:'#e2e0f0'}}>📁 File Manager</h2>
+          <div style={{fontSize:'.8rem',color:'#7c738a',marginTop:2}}>{files.length} files · {totalMB} MB</div>
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <input className="input" style={{width:220}} placeholder="Search files..." value={search} onChange={e=>setSearch(e.target.value)}/>
+          <button className="btn btn-ghost" onClick={load}>🔄 Refresh</button>
+        </div>
+      </div>
+      <div className="card">
+        {loading ? <div style={{textAlign:'center',padding:40,color:'#7c738a'}}>Loading...</div> : (
+          <table>
+            <thead><tr><th>File</th><th>Size</th><th>Modified</th><th>Delete</th></tr></thead>
+            <tbody>
+              {filtered.map(f=>(
+                <tr key={f.name}>
+                  <td style={{display:'flex',alignItems:'center',gap:8,fontFamily:'monospace',fontSize:'.82rem',color:'#c4c0d8'}}>
+                    <span style={{fontSize:'1.2rem'}}>{extIcon(f.ext)}</span>
+                    <span style={{maxWidth:340,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.name}</span>
+                  </td>
+                  <td><span className="badge badge-purple">{f.sizeMB} MB</span></td>
+                  <td style={{fontSize:'.78rem',color:'#7c738a'}}>{new Date(f.modified).toLocaleString()}</td>
+                  <td><button className="btn btn-danger" style={{fontSize:'.8rem',padding:'5px 12px'}} onClick={()=>del(f.name)}>🗑️</button></td>
+                </tr>
+              ))}
+              {!filtered.length && <tr><td colSpan={4} style={{textAlign:'center',padding:30,color:'#7c738a'}}>No files found</td></tr>}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Logs Page ─────────────────────────────────────────────────────────────
+function LogsPage() {
+  const [logs, setLogs] = useState([]);
+  const [paused, setPaused] = useState(false);
+  const bottom = useRef(null);
+
+  useEffect(()=>{ api('/bot-api/logs?limit=100').then(d=>{ if(Array.isArray(d)) setLogs(d.reverse()); }); },[]);
+
+  useEffect(()=>{
+    if (!socket) return;
+    const h = (entry) => { if (!paused) setLogs(l=>[...l.slice(-399),entry]); };
+    socket.on('log', h); return ()=>socket.off('log', h);
+  },[paused]);
+
+  useEffect(()=>{ if(!paused) bottom.current?.scrollIntoView({behavior:'smooth'}); },[logs,paused]);
+
+  function logColor(line) {
+    if (line.includes('Error')||line.includes('ERROR')||line.includes('failed')) return '#f87171';
+    if (line.includes('✅')||line.includes('Connected')||line.includes('ready')) return '#4ade80';
+    if (line.includes('⚠️')||line.includes('Warning')||line.includes('WARN')) return '#fbbf24';
+    return '#c4c0d8';
+  }
+
+  return (
+    <div style={{padding:24,display:'flex',flexDirection:'column',height:'calc(100vh - 48px)'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <h2 style={{fontSize:'1.4rem',fontWeight:700,color:'#e2e0f0'}}>📜 Live Logs</h2>
+        <div style={{display:'flex',gap:10,alignItems:'center'}}>
+          <span style={{fontSize:'.78rem',color:'#7c738a'}}>{logs.length} entries</span>
+          <button className="btn btn-ghost" onClick={()=>setPaused(p=>!p)} style={{fontSize:'.8rem'}}>{paused?'▶️ Resume':'⏸️ Pause'}</button>
+          <button className="btn btn-ghost" onClick={()=>setLogs([])} style={{fontSize:'.8rem'}}>🗑️ Clear</button>
+        </div>
+      </div>
+      <div className="card" style={{flex:1,overflow:'auto',padding:'14px 18px',fontFamily:'monospace',background:'#0d0b1a'}}>
+        {logs.map((l,i)=><div key={i} className="log-line" style={{color:logColor(l)}}>{l}</div>)}
+        {!logs.length && <div style={{textAlign:'center',padding:30,color:'#7c738a'}}>Waiting for logs...</div>}
+        <div ref={bottom}/>
+      </div>
+    </div>
+  );
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────
+function App() {
+  const [token, setToken] = useState(localStorage.getItem('admin_token'));
+  const [page, setPage] = useState('dashboard');
+  const [botStatus, setBotStatus] = useState('Disconnected');
+  const { show:toast, Toasts } = useToast();
+
+  useEffect(()=>{
+    if (!socket||!token) return;
+    function checkStatus(d) {
+      if(d.status === 'Connected') setBotStatus('Connected');
+      else api('/bot-api/stats').then(s=>setBotStatus(s.status)).catch(()=>{});
+    }
+    socket.on('update', d=>{ if(d.status) setBotStatus(d.status); });
+    socket.on('session:update', checkStatus);
+    return ()=>{ socket.off('update'); socket.off('session:update', checkStatus); }
+  },[token]);
+
+  function onLogin(d) { setToken(d.token); }
+  function onLogout() { localStorage.removeItem('admin_token'); setToken(null); }
+
+  if (!token) return <LoginPage onLogin={onLogin}/>;
+
+  const pages = {
+    dashboard: <DashboardPage/>,
+    sessions:  <SessionsPage toast={toast}/>,
+    broadcast: <BroadcastPage toast={toast}/>,
+    settings:  <SettingsPage toast={toast}/>,
+    economy:   <EconomyPage toast={toast}/>,
+    files:     <FilesPage toast={toast}/>,
+    logs:      <LogsPage/>,
+  };
+
+  return (
+    <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
+      <Toasts/>
+      <Sidebar page={page} setPage={setPage} onLogout={onLogout} botStatus={botStatus}/>
+      <main style={{flex:1,overflow:'auto',background:'#13111e'}}>
+        {pages[page]||pages.dashboard}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+⚙️ Build a Complete WhatsApp MD Bot (FULL FEATURES)
+
+I want you to create a fully working WhatsApp Multi-Device bot using Node.js and the Baileys library.
+
+🔹 Requirements:
+
+- Use latest Baileys version
+- Use Node.js
+- Clean, well-structured, beginner-friendly code
+- Prefix: .
+
+━━━━━━━━━━━━━━━
+📥 DOWNLOAD SYSTEM
+━━━━━━━━━━━━━━━
+
+- .yt <link> (YouTube video with hd/sd/low)
+- .yta <link> (YouTube audio)
+- .tt <link> (TikTok no watermark)
+- .ig <link> (Instagram download)
+- .fb <link> (Facebook video)
+- .ph <link> (Pornhub)
+- .xnxx <link> (XNXX)
+- .xv <link> (XVideos)
+- .xh <link> (xHamster)
+- .yp <link> (YouPorn)
+- .sb <link> (SpankBang)
+- .rt <link> (RedTube)
+
+━━━━━━━━━━━━━━━
+🔍 SEARCH SYSTEM
+━━━━━━━━━━━━━━━
+
+- .search <text>
+- .yts <query>
+- .g <query>
+- .wiki <topic>
+- .xnxx <keyword>
+- .phsearch <keyword>
+- .xvsearch <keyword>
+- .xhsearch <keyword>
+- .ypsearch <keyword>
+- .sbsearch <keyword>
+- .rtsearch <keyword>
+- .ttsearch <keyword>
+- .igsearch <keyword>
+- .pinsearch <keyword>
+- .reddit <subreddit>
+
+━━━━━━━━━━━━━━━
+🤖 AI & TOOLS
+━━━━━━━━━━━━━━━
+
+- .ai <text>
+- .img <prompt>
+- .tts <text>
+- .trt <text> (Sinhala ↔ English)
+
+━━━━━━━━━━━━━━━
+👑 GROUP CONTROL
+━━━━━━━━━━━━━━━
+
+- .antilink on/off
+- .antibad on/off
+- .kick @user
+- .add <number>
+- .promote @user
+- .demote @user
+- .lock / .unlock
+
+━━━━━━━━━━━━━━━
+🔞 NSFW (ADMIN ONLY)
+━━━━━━━━━━━━━━━
+
+- .nsfw on/off
+- .18+
+- .hentai
+- .nsfwvid
+
+━━━━━━━━━━━━━━━
+🎮 FUN & GAMES
+━━━━━━━━━━━━━━━
+
+- .quiz
+- .math
+- .riddle
+- .joke
+- .meme
+
+━━━━━━━━━━━━━━━
+💰 ECONOMY SYSTEM
+━━━━━━━━━━━━━━━
+
+- .balance
+- .daily
+- .shop
+- .buy <item>
+- .transfer @user
+
+━━━━━━━━━━━━━━━
+📊 SYSTEM & BOT
+━━━━━━━━━━━━━━━
+
+- .ping
+- .owner
+- .menu
+- .help
+- .restart
+- .broadcast <text>
+
+━━━━━━━━━━━━━━━
+💎 PREMIUM FEATURES
+━━━━━━━━━━━━━━━
+
+- .premium
+- .claim
+- .unlock
+
+━━━━━━━━━━━━━━━
+👨‍💻 OWNER PANEL
+━━━━━━━━━━━━━━━
+
+- .ban / .unban
+- .bc <text>
+- .setppbot
+- .autoread on/off
+- .autotyping on/off
+
+━━━━━━━━━━━━━━━
+📱 MENU SYSTEM
+━━━━━━━━━━━━━━━
+
+- Create BUTTON MENU (.menu)
+- Create LIST MENU (.allmenu)
+- Add image, footer, and clean UI
+- Make menu stylish and easy to use
+
+━━━━━━━━━━━━━━━
+⚡ EXTRA FEATURES
+━━━━━━━━━━━━━━━
+
+- Auto reply for "hi", "hello"
+- Command handler system
+- Config file (owner number, bot name)
+- JSON database (economy + settings)
+- Session save (multi-device login)
+- Error handling system
+
+━━━━━━━━━━━━━━━
+📦 OUTPUT
+━━━━━━━━━━━━━━━
+
+- Full working bot source code
+- All commands implemented
+- Ready to run (npm install & node index.js)
+- No errors
+
+Make everything complete, optimized, and professional.
