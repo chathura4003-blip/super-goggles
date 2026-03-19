@@ -4,8 +4,8 @@ const path = require('path');
 const YTDlpWrap = require('yt-dlp-wrap').default;
 const { logger } = require('./logger');
 
-// Use the correct Linux binary
-const ytdlpPath = path.join(__dirname, 'yt-dlp-linux');
+// Use the correct yt-dlp binary for the host OS
+const ytdlpPath = path.join(__dirname, process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp-linux');
 const ytdlp = new YTDlpWrap(ytdlpPath);
 
 const ADULT_SITES = [
