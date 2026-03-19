@@ -87,7 +87,19 @@ async function startBot() {
                 try {
                     const qrDataUrl = await QRCode.toDataURL(qr);
                     if (io) io.emit('qr', qrDataUrl);
-                    qrcodeTerminal.generate(qr, { small: true });
+
+                    // Clear the terminal and render a scannable QR code (works better on narrow terminals)
+                    if (process.stdout.isTTY) {
+                        try { process.stdout.write('\x1Bc'); } catch {}
+                        try {
+                            const qrStr = await QRCode.toString(qr, { type: 'terminal', small: true });
+                            console.log(qrStr);
+                        } catch {
+                            qrcodeTerminal.generate(qr, { small: true });
+                        }
+                        console.log('📱 Scan this QR with WhatsApp (or use the web dashboard).');
+                    }
+
                     logger('[Main Bot] QR code generated. Scan with WhatsApp ^^^');
                 } catch (err) { logger(`QR Error: ${err.message}`); }
             }
