@@ -1,8 +1,24 @@
 const fs = require('fs');
 const path = require('path');
 
+// Suppress noisy crypto errors from the libsignal library (non-fatal, Baileys handles them internally)
+const _origConsoleError = console.error.bind(console);
+console.error = (...args) => {
+    const msg = (args[0] ?? '').toString();
+    if (
+        msg.includes('Bad MAC') ||
+        msg.includes('MessageCounterError') ||
+        msg.includes('Failed to decrypt') ||
+        msg.includes('Session error') ||
+        msg.includes('Key used already')
+    ) return;
+    _origConsoleError(...args);
+};
+
 process.on('unhandledRejection', (reason) => {
-    console.error('[Bot] Unhandled promise rejection (ignored to prevent crash):', reason?.message || reason);
+    const msg = reason?.message || String(reason);
+    if (msg.includes('Bad MAC') || msg.includes('MessageCounterError')) return;
+    console.error('[Bot] Unhandled promise rejection (ignored to prevent crash):', msg);
 });
 
 process.on('uncaughtException', (err) => {

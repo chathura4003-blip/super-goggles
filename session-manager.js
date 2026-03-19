@@ -126,27 +126,35 @@ async function startSocket(id, entry) {
 
             if (connection === 'close') {
                 const code = lastDisconnect?.error?.output?.statusCode;
-                const loggedOut = code === DisconnectReason.loggedOut;
-                entry.status = loggedOut ? 'Logged Out' : 'Disconnected';
+                const loggedOut  = code === DisconnectReason.loggedOut || code === 401;
+                const replaced   = code === 440;  // Session replaced by another client
+
                 entry.qr = null;
                 entry.qrDataUrl = null;
                 entry.pairCode = null;
-                emit('session:update', { id, status: entry.status });
-                logger(`[Session ${id}] Closed (code ${code})`);
 
-                if (!loggedOut) {
-                    // Auto-reconnect after 5 seconds
+                if (loggedOut) {
+                    entry.status = 'Logged Out';
+                    emit('session:update', { id, status: entry.status });
+                    logger(`[Session ${id}] Logged out — removing session.`);
+                    registry.delete(id);
+                    try { fs.rmSync(sessionDir(id), { recursive: true }); } catch {}
+                    emit('session:removed', { id });
+                } else if (replaced) {
+                    entry.status = 'Session Replaced';
+                    emit('session:update', { id, status: entry.status });
+                    logger(`[Session ${id}] Session replaced (440) — not reconnecting to avoid conflict.`);
+                    // Do NOT reconnect — another client owns this session
+                } else {
+                    entry.status = 'Disconnected';
+                    emit('session:update', { id, status: entry.status });
+                    logger(`[Session ${id}] Closed (code ${code}) — reconnecting in 8s...`);
                     entry.reconnectTimer = setTimeout(() => {
                         if (registry.has(id)) {
                             logger(`[Session ${id}] Auto-reconnecting...`);
                             startSocket(id, registry.get(id)).catch(e => logger(`[Session ${id}] Reconnect error: ${e.message}`));
                         }
-                    }, 5000);
-                } else {
-                    // Remove session dir on logout
-                    registry.delete(id);
-                    try { fs.rmSync(sessionDir(id), { recursive: true }); } catch {}
-                    emit('session:removed', { id });
+                    }, 8000);
                 }
             }
 

@@ -334,9 +334,18 @@ function startDashboard() {
         console.log(`🌐 Dashboard: http://localhost:${PORT}`);
     }).on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
-            console.error(`❌ Port ${PORT} is already in use!`);
-            console.log(`💡 Try running: "npx kill-port ${PORT}" or close the other bot window.`);
-            // Optional: Auto-kill attempt on windows (use with caution)
+            console.error(`❌ Port ${PORT} in use — killing old process and retrying...`);
+            const { execSync } = require('child_process');
+            try {
+                execSync(`fuser -k ${PORT}/tcp 2>/dev/null || kill $(lsof -t -i:${PORT}) 2>/dev/null || true`, { stdio: 'pipe' });
+            } catch {}
+            setTimeout(() => {
+                server.listen(PORT, '0.0.0.0', () => {
+                    console.log(`🌐 Dashboard: http://localhost:${PORT} (retry)`);
+                }).on('error', (e2) => {
+                    console.error('Server Error on retry:', e2.message);
+                });
+            }, 1500);
         } else {
             console.error('Server Error:', err);
         }
